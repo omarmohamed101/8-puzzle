@@ -12,24 +12,25 @@ goal_state = [0, 1, 2, 3, 4, 5, 6, 7, 8]
 
 board_side = 0
 board_len = 0
-max_search_depth = 0
-max_frontier_size = 0
 
 
 def a_star(start_state):
 
-    global max_frontier_size, goal_node, max_search_depth
+    global goal_node
 
-    explored, heap, heap_entry, counter = set(), list(), {}, itertools.count()
+    explored, heap, heap_entry = set(), list(), {}
 
-    key = h(start_state)
+    heuristic = h(start_state)
 
-    root = State(start_state, None, None, 0, 0, key)
+    # state, parent, move, cost, key(cost + h)
+    root = State(start_state, None, None, 0, heuristic)
 
-    entry = (key, 0, root)
+    # cost, move, state
+    entry = (heuristic, 0, root)
 
     heappush(heap, entry)
 
+    # to link the number to its node
     heap_entry[root.map] = entry
 
     while heap:
@@ -39,8 +40,9 @@ def a_star(start_state):
         explored.add(node[2].map)
 
         if node[2].state == goal_state:
+            # save the goal state to backtrack the solution
             goal_node = node[2]
-            return heap
+            return
 
         neighbors = expand(node[2])
 
@@ -58,23 +60,18 @@ def a_star(start_state):
 
                 heap_entry[neighbor.map] = entry
 
-                if neighbor.depth > max_search_depth:
-                    max_search_depth += 1
-
             elif neighbor.map in heap_entry and neighbor.key < heap_entry[neighbor.map][2].key:
 
                 hindex = heap.index((heap_entry[neighbor.map][2].key,
                                      heap_entry[neighbor.map][2].move,
                                      heap_entry[neighbor.map][2]))
 
-                heap[int(hindex)] = entry
-
+                # replace the old state with the new best
+                heap[hindex] = entry
                 heap_entry[neighbor.map] = entry
 
+                # rearrange the heap
                 heapify(heap)
-
-        if len(heap) > max_frontier_size:
-            max_frontier_size = len(heap)
 
 
 def backtrack():
@@ -101,8 +98,8 @@ def backtrack():
 
 def move(state, direction):
     """
-    :param state: list of numbers
-    :param direction: number indicates the direction
+    state: list of numbers
+    direction: number indicates the direction
     1: Up
     2: Down
     3: Left
@@ -153,16 +150,15 @@ def move(state, direction):
 def expand(node):
     """
     expand the node in all directions if possible
-    :param node: node object
-    :return: list of possible neighbors
+    list of possible neighbors
     """
 
     neighbors = list()
 
-    neighbors.append(State(move(node.state, 1), node, move=1, depth=node.depth+1, cost=node.cost+1, key=0))
-    neighbors.append(State(move(node.state, 2), node, move=2, depth=node.depth+1, cost=node.cost+1, key=0))
-    neighbors.append(State(move(node.state, 3), node, move=3, depth=node.depth+1, cost=node.cost+1, key=0))
-    neighbors.append(State(move(node.state, 4), node, move=4, depth=node.depth+1, cost=node.cost+1, key=0))
+    neighbors.append(State(move(node.state, 1), node, move=1, cost=node.cost+1, key=0))
+    neighbors.append(State(move(node.state, 2), node, move=2, cost=node.cost+1, key=0))
+    neighbors.append(State(move(node.state, 3), node, move=3, cost=node.cost+1, key=0))
+    neighbors.append(State(move(node.state, 4), node, move=4, cost=node.cost+1, key=0))
 
     # return only the valid expansions
     return [neighbor for neighbor in neighbors if neighbor.state]
@@ -172,19 +168,17 @@ def h(state):
     """
     calculate the heuristic
     which is the sum of the distances of each cell away from it's correct position
-    :param state: state node
-    :return: number correspond to the heuristic
-    # """
+    """
     sum = 0
     for i in range(1, board_len):
+        # the manhatin distance
         sum += abs(state.index(i) % board_side - goal_state.index(i) % board_side) + abs(state.index(i) // board_side - goal_state.index(i) // board_side)
     return sum
 
 
 def read(configrations):
     """
-    :param configrations: string contains the board entered by the user "1,2,4,6,..."
-    :return: None
+    configrations: string contains the board entered by the user "1,2,4,6,..."
     """
     global board_len, board_side
     board = configrations.split(',')
@@ -196,29 +190,14 @@ def read(configrations):
     board_side = int(board_len ** 0.5)
 
 
-def export():
-    """
-    export the file with the result information
-    :return: None
-    """
-    global moves
-    moves = backtrack()
-
-    with open('out.txt', 'w') as f:
-        f.write('path: ' + str(moves))
-        f.write('\nTotal number of moves: ' + str(len(moves)))
-
-
 def main():
     parser = argparse.ArgumentParser()
-
-    parser.add_argument('algorithm')
     parser.add_argument('board')
     args = parser.parse_args()
     read(args.board)
 
     a_star(initial_state)
-    export()
+    print(backtrack())
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 
 class State:
 
-    def __init__(self, state, parent, move, depth, cost, key):
+    def __init__(self, state, parent, move, cost, key):
 
         self.state = state
 
@@ -9,17 +9,14 @@ class State:
 
         self.move = move
 
-        self.depth = depth
-
         self.cost = cost
 
         self.key = key
 
         if self.state:
+            # ex 1234567780
             self.map = ''.join(str(e) for e in self.state)
 
-    def __eq__(self, other):
-        return self.map == other.map
-
+    # specify method for the heappop operation
     def __lt__(self, other):
         return self.map < other.map
